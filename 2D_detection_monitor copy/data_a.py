@@ -7,13 +7,16 @@ from scipy.ndimage import gaussian_filter1d
 
 class data_analysis:
     def remove_small_nan_blocks(df, column, min_len=5):
+        original_length = len(df[column])
         is_nan = df[column].isna()
         df['group'] = (is_nan != is_nan.shift()).cumsum()
         group_lengths = df.groupby('group').size()
         small_nan_groups = group_lengths[(group_lengths < min_len) & (group_lengths.index.isin(df.loc[is_nan, 'group']))]
         df['remove'] = df['group'].isin(small_nan_groups.index)
         cleaned_column = df.loc[~df['remove'], column].reset_index(drop=True)
-        return cleaned_column  
+
+        return cleaned_column 
+     
     def data_analysis(self,file_list,output_file):
         self.distance = []
         self.file = file_list
@@ -22,10 +25,10 @@ class data_analysis:
         df_cleaned = df.dropna()
         #平滑化座標
         sigma = 0.5
-        smoothed_rg_y = gaussian_filter1d(df_cleaned['right_heel_y'], sigma=sigma).astype(int)
-        smoothed_rg_x = gaussian_filter1d(df_cleaned['right_heel_x'], sigma=sigma).astype(int)
-        smoothed_lf_y = gaussian_filter1d(df_cleaned['left_heel_y'], sigma=sigma).astype(int)
-        smoothed_lf_x = gaussian_filter1d(df_cleaned['left_heel_x'], sigma=sigma).astype(int)
+        smoothed_rg_y = gaussian_filter1d(df_cleaned['prev_right_heel_y'], sigma=sigma).astype(int)
+        smoothed_rg_x = gaussian_filter1d(df_cleaned['prev_right_heel_x'], sigma=sigma).astype(int)
+        smoothed_lf_y = gaussian_filter1d(df_cleaned['prev_left_heel_y'], sigma=sigma).astype(int)
+        smoothed_lf_x = gaussian_filter1d(df_cleaned['prev_left_heel_x'], sigma=sigma).astype(int)
 
         # 将平滑后的数据添加到 DataFrame 中
         df_cleaned['smoothed_right_heel_y'] = smoothed_rg_y
@@ -55,7 +58,7 @@ class data_analysis:
         lf_first_value = df_cleaned['smoothed_left_heel_y'].iloc[0] -2
 
         # 條件篩選並賦值
-        condition = (df_cleaned['right_heel_slopes'] < 1) & (df_cleaned['right_heel_slopes'] > -1) & (df_cleaned['smoothed_right_heel_y'] > rg_first_value)
+        condition = (df_cleaned['right_heel_slopes'] < 2) & (df_cleaned['right_heel_slopes'] > -2) & (df_cleaned['smoothed_right_heel_y'] > rg_first_value)
         df_cleaned.loc[condition, 'right_test_point_y'] = df_cleaned.loc[condition, 'smoothed_right_heel_y']
         df_cleaned.loc[condition, 'right_test_point_x'] = df_cleaned.loc[condition, 'smoothed_right_heel_x']
         df_cleaned.loc[condition, 'right_test_time'] = df_cleaned.loc[condition, 'time']
@@ -92,8 +95,8 @@ class data_analysis:
         right_end_points_index = df_cleaned[right_ends].index.tolist()
         left_end_points_index = df_cleaned[left_ends].index.tolist()
 
-        end_points_modified = (np.array(right_end_points_index)-1).tolist()
-        end_points_modified2 = (np.array(left_end_points_index)-1).tolist()
+        end_points_modified = (np.array(right_end_points_index)).tolist()
+        end_points_modified2 = (np.array(left_end_points_index)).tolist()
         right_combined_index =sorted(end_points_modified + (right_start_points_index[1:]))
         left_combined_index =sorted(end_points_modified2 + (left_start_points_index[1:]))
 
@@ -161,7 +164,8 @@ class data_analysis:
         movement_speed = avg_step_length / avg_stride_time
         stance_time = df_cleaned.at[right_combined_index[0], 'right_landing_time']
         swing_time = avg_stride_time
-        
+        print(count)
+        print(count)
         
         df_smoothed = {
             "average_step_time": avg_stride_time,
@@ -169,8 +173,8 @@ class data_analysis:
             "movement_speed" : movement_speed,
             "p_value": stance_time, #stance_time
             "accelerationviewer": self.distance, #"distance of each step length"
-            "y_values": df_cleaned['right_heel_y'].tolist(),
-            "left_y_value": df_cleaned['left_heel_y'].tolist()
+            "y_values": df_cleaned['prev_right_heel_y'].tolist(),
+            "left_y_value": df_cleaned['prev_left_heel_y'].tolist()
         }
         file_name = os.path.splitext(os.path.basename(self.file))[0]
         json_file_path = os.path.join(output_file, file_name + "_result.json")

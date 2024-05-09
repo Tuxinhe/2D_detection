@@ -6,4 +6,4 @@ def main(file_name):
     load.play(output_file)
 
 if __name__ == '__main__':
-    main('001.mp4')
+    main('002.mp4')

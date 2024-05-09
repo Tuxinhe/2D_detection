@@ -30,9 +30,7 @@ class VideoPlayer:
                         self.detection_time = (self.mp_set.cap.get(cv2.CAP_PROP_POS_MSEC) /1000)  # 獲取當前影格的偵測時間
                         self.frame_data.point_prev(self.results, self.mp_pose, image_height,image_width, self.detection_time)
                         self.frame_data.append_pose_landmarks()
-                    else:
-                        self.frame_data.point_xyz()
-                        self.frame_data.append_pose_landmarks()
+
                     cv2.imshow('video',self.image)
                     if cv2.waitKey(1) & 0xFF == 27 :
                         break
